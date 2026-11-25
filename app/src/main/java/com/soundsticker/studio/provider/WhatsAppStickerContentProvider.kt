@@ -8,7 +8,6 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
 import android.os.ParcelFileDescriptor
-import com.soundsticker.studio.SoundStickerApp
 import com.soundsticker.studio.data.local.StickerStorageManager
 import com.soundsticker.studio.data.model.StickerPack
 import java.io.File
@@ -22,7 +21,6 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         const val EXTRA_STICKER_PACK_AUTHORITY = "sticker_pack_authority"
         const val EXTRA_STICKER_PACK_NAME = "sticker_pack_name"
 
-        // Column names required by WhatsApp
         const val STICKER_PACK_IDENTIFIER = "sticker_pack_identifier"
         const val STICKER_PACK_NAME = "sticker_pack_name"
         const val STICKER_PACK_PUBLISHER = "sticker_pack_publisher"
@@ -54,10 +52,12 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         }
     }
 
-    private lateinit var storageManager: StickerStorageManager
+    private fun getStorage(): StickerStorageManager {
+        val ctx = context ?: throw IllegalStateException("Context is null")
+        return StickerStorageManager(ctx.applicationContext)
+    }
 
     override fun onCreate(): Boolean {
-        storageManager = SoundStickerApp.instance.storageManager
         return true
     }
 
@@ -84,7 +84,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
     }
 
     private fun getAllPacksCursor(): Cursor {
-        val packs = storageManager.getAllPacks()
+        val packs = getStorage().getAllPacks()
         val cursor = MatrixCursor(
             arrayOf(
                 STICKER_PACK_IDENTIFIER,
@@ -109,7 +109,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
     }
 
     private fun getPackCursor(packId: String): Cursor? {
-        val pack = storageManager.getPack(packId) ?: return null
+        val pack = getStorage().getPack(packId) ?: return null
         val cursor = MatrixCursor(
             arrayOf(
                 STICKER_PACK_IDENTIFIER,
@@ -150,7 +150,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
     }
 
     private fun getStickersCursor(packId: String): Cursor? {
-        val pack = storageManager.getPack(packId) ?: return null
+        val pack = getStorage().getPack(packId) ?: return null
         val cursor = MatrixCursor(
             arrayOf(
                 STICKER_FILE_NAME,
@@ -178,7 +178,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
             if (segments.size >= 3) {
                 val packId = segments[1]
                 val fileName = segments[2]
-                val file = storageManager.getStickerFile(packId, fileName)
+                val file = getStorage().getStickerFile(packId, fileName)
                 if (file.exists()) {
                     val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                     return AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH)
