@@ -18,9 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,10 +34,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.soundsticker.studio.R
 import com.soundsticker.studio.ui.theme.EmeraldGreen
 import com.soundsticker.studio.ui.theme.WhatsAppDarkBg
 import com.soundsticker.studio.ui.theme.WhatsAppSurface
@@ -81,25 +83,25 @@ fun HelpGuideScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             GuideCard(
-                icon = Icons.Default.MusicNote,
+                icon = painterResource(id = R.drawable.ic_speaker),
                 title = "¿Cómo funcionan los Stickers con Sonido?",
                 description = "WhatsApp permite enviar stickers con sonido en sus chats y estados. SoundSticker Studio te permite preparar el sticker visual a 512x512 y el audio recortado listo para ser enviado."
             )
 
             GuideCard(
-                icon = Icons.Default.Folder,
+                icon = painterResource(id = R.drawable.ic_save),
                 title = "El Kit para Sticker con Sonido",
                 description = "Al tocar 'Guardar kit para Sticker con Sonido', la app guarda en 'Movies/SoundStickers/' el video o imagen + pista de sonido perfectamente recortada (5s para video, 10s para foto). Puedes adjuntarlo directamente desde el selector de medios de WhatsApp."
             )
 
             GuideCard(
-                icon = Icons.Default.Send,
+                icon = rememberVectorPainter(Icons.Default.Send),
                 title = "Exportación oficial de Stickers",
                 description = "La aplicación implementa el ContentProvider oficial de WhatsApp (com.whatsapp.sticker.READ). Puedes añadir paquetes de stickers completos directamente a WhatsApp y WhatsApp Business con un solo toque."
             )
 
             GuideCard(
-                icon = Icons.Default.CheckCircle,
+                icon = rememberVectorPainter(Icons.Default.CheckCircle),
                 title = "Regla de los 3 Stickers",
                 description = "Por especificación obligatoria de WhatsApp, cada paquete debe tener un mínimo de 3 stickers y un máximo de 30. SoundSticker Studio asegura automáticamente que tus packs cumplan este requisito."
             )
@@ -129,7 +131,7 @@ fun HelpGuideScreen(
 
 @Composable
 private fun GuideCard(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     description: String
 ) {
@@ -149,7 +151,7 @@ private fun GuideCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = icon,
+                    painter = icon,
                     contentDescription = null,
                     tint = EmeraldGreen,
                     modifier = Modifier.size(24.dp)

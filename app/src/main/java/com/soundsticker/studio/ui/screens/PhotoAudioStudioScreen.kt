@@ -24,12 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -45,11 +40,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.soundsticker.studio.R
 import com.soundsticker.studio.ui.components.MemeTextOverlay
 import com.soundsticker.studio.ui.components.RangeSliderTrimmer
 import com.soundsticker.studio.ui.components.WaveformBar
@@ -225,9 +222,10 @@ fun PhotoAudioStudioScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(
-                            imageVector = if (state.isRecording) Icons.Default.Stop else Icons.Default.Mic,
+                            painter = painterResource(id = if (state.isRecording) R.drawable.ic_stop else R.drawable.ic_mic),
                             contentDescription = null,
-                            tint = if (state.isRecording) Color.White else EmeraldGreen
+                            tint = if (state.isRecording) Color.White else EmeraldGreen,
+                            modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
@@ -242,9 +240,10 @@ fun PhotoAudioStudioScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Audiotrack,
+                            painter = painterResource(id = R.drawable.ic_speaker),
                             contentDescription = null,
-                            tint = EmeraldGreen
+                            tint = EmeraldGreen,
+                            modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Elegir Archivo", color = WhatsAppTextPrimary)
@@ -286,10 +285,10 @@ fun PhotoAudioStudioScreen(
                                 .background(if (state.isPlayingAudio) ErrorRed else EmeraldGreen)
                         ) {
                             Icon(
-                                imageVector = if (state.isPlayingAudio) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                painter = painterResource(id = if (state.isPlayingAudio) R.drawable.ic_stop else R.drawable.ic_play),
                                 contentDescription = "Play/Stop Preview",
                                 tint = WhatsAppDarkBg,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(26.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -338,7 +337,12 @@ fun PhotoAudioStudioScreen(
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Icon(Icons.Default.Save, contentDescription = null, tint = EmeraldGreen)
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_save),
+                    contentDescription = null,
+                    tint = EmeraldGreen,
+                    modifier = Modifier.size(20.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Guardar kit para Sticker con Sonido",

@@ -7,24 +7,25 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import com.soundsticker.studio.ui.screens.MainStudioScreen
 import com.soundsticker.studio.ui.theme.SoundStickerStudioTheme
 import com.soundsticker.studio.ui.viewmodel.StudioViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: StudioViewModel by viewModels()
+    private lateinit var viewModel: StudioViewModel
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
+    ) {
         // Permissions handled
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(this)[StudioViewModel::class.java]
         checkAndRequestAppPermissions()
 
         setContent {

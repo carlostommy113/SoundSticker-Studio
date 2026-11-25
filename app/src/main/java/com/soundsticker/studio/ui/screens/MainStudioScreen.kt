@@ -6,10 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Collections
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,8 +28,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.soundsticker.studio.R
 import com.soundsticker.studio.data.model.CreationMode
 import com.soundsticker.studio.ui.components.WhatsAppExportDialog
 import com.soundsticker.studio.ui.theme.EmeraldGreen
@@ -81,7 +80,7 @@ fun MainStudioScreen(
                 actions = {
                     IconButton(onClick = { showHelpScreen = true }) {
                         Icon(
-                            imageVector = Icons.Default.HelpOutline,
+                            imageVector = Icons.Default.Info,
                             contentDescription = "Guía de Ayuda",
                             tint = EmeraldGreen
                         )
@@ -100,7 +99,12 @@ fun MainStudioScreen(
                 NavigationBarItem(
                     selected = state.currentMode == CreationMode.PHOTO_AUDIO,
                     onClick = { viewModel.setMode(CreationMode.PHOTO_AUDIO) },
-                    icon = { Icon(Icons.Default.Image, contentDescription = "Foto + Audio") },
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_image),
+                            contentDescription = "Foto + Audio"
+                        )
+                    },
                     label = { Text("Foto + Audio", fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppDarkBg,
@@ -114,7 +118,12 @@ fun MainStudioScreen(
                 NavigationBarItem(
                     selected = state.currentMode == CreationMode.VIDEO_TO_STICKER,
                     onClick = { viewModel.setMode(CreationMode.VIDEO_TO_STICKER) },
-                    icon = { Icon(Icons.Default.Movie, contentDescription = "Video a Sticker") },
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_video),
+                            contentDescription = "Video a Sticker"
+                        )
+                    },
                     label = { Text("Video a Sticker", fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppDarkBg,
@@ -128,7 +137,12 @@ fun MainStudioScreen(
                 NavigationBarItem(
                     selected = state.currentMode == CreationMode.MY_PACKS,
                     onClick = { viewModel.setMode(CreationMode.MY_PACKS) },
-                    icon = { Icon(Icons.Default.Collections, contentDescription = "Mis Packs") },
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_pack),
+                            contentDescription = "Mis Packs"
+                        )
+                    },
                     label = { Text("Mis Packs", fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppDarkBg,

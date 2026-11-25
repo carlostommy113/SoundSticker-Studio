@@ -23,12 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Loop
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -44,8 +39,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.soundsticker.studio.R
 import com.soundsticker.studio.ui.components.RangeSliderTrimmer
 import com.soundsticker.studio.ui.theme.EmeraldGreen
 import com.soundsticker.studio.ui.theme.ErrorRed
@@ -80,7 +78,7 @@ fun VideoToStickerScreen(
             text = "Video a Sticker Animado con Sonido (hasta 5s)",
             color = WhatsAppTextPrimary,
             fontSize = 15.sp,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -103,7 +101,7 @@ fun VideoToStickerScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.VideoFile,
+                        painter = painterResource(id = R.drawable.ic_video),
                         contentDescription = "Video cargado",
                         tint = EmeraldGreen,
                         modifier = Modifier.size(64.dp)
@@ -113,7 +111,7 @@ fun VideoToStickerScreen(
                         text = "Video cargado correctamente",
                         color = WhatsAppTextPrimary,
                         fontSize = 15.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                        fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = "Toca para cambiar video",
@@ -124,7 +122,7 @@ fun VideoToStickerScreen(
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.Default.VideoFile,
+                        painter = painterResource(id = R.drawable.ic_video),
                         contentDescription = "Elegir Video",
                         tint = EmeraldGreen,
                         modifier = Modifier.size(54.dp)
@@ -158,7 +156,7 @@ fun VideoToStickerScreen(
                         text = "Selecciona el fragmento (Máx. 5 seg):",
                         color = WhatsAppTextPrimary,
                         fontSize = 14.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -218,17 +216,17 @@ fun VideoToStickerScreen(
                                 .background(if (state.isPlayingVideoLoop) ErrorRed else EmeraldGreen)
                         ) {
                             Icon(
-                                imageVector = if (state.isPlayingVideoLoop) Icons.Default.Stop else Icons.Default.PlayArrow,
+                                painter = painterResource(id = if (state.isPlayingVideoLoop) R.drawable.ic_stop else R.drawable.ic_play),
                                 contentDescription = "Loop Preview",
                                 tint = WhatsAppDarkBg,
-                                modifier = Modifier.size(28.dp)
+                                modifier = Modifier.size(26.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.Loop,
+                                    painter = painterResource(id = R.drawable.ic_cut),
                                     contentDescription = null,
                                     tint = EmeraldGreen,
                                     modifier = Modifier.size(16.dp)
@@ -238,7 +236,7 @@ fun VideoToStickerScreen(
                                     text = "Previsualizar en bucle (3 repeticiones)",
                                     color = WhatsAppTextPrimary,
                                     fontSize = 13.sp,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
                             Text(
@@ -273,7 +271,7 @@ fun VideoToStickerScreen(
                         text = "Añadir a Pack de WhatsApp",
                         color = WhatsAppDarkBg,
                         fontSize = 15.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
@@ -286,13 +284,18 @@ fun VideoToStickerScreen(
                         .fillMaxWidth()
                         .height(50.dp)
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = null, tint = EmeraldGreen)
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_save),
+                        contentDescription = null,
+                        tint = EmeraldGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Guardar kit para Sticker con Sonido",
                         color = WhatsAppTextPrimary,
                         fontSize = 14.sp,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

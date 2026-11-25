@@ -26,9 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -44,10 +42,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.soundsticker.studio.R
 import com.soundsticker.studio.SoundStickerApp
 import com.soundsticker.studio.data.model.StickerItem
 import com.soundsticker.studio.data.model.StickerPack
@@ -77,7 +77,7 @@ fun MyPacksScreen(
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(
-                    imageVector = Icons.Default.MusicNote,
+                    painter = painterResource(id = R.drawable.ic_speaker),
                     contentDescription = null,
                     tint = EmeraldGreen,
                     modifier = Modifier.size(64.dp)
@@ -215,7 +215,7 @@ private fun StickerPackCard(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.VolumeUp,
+                                    painter = painterResource(id = R.drawable.ic_speaker),
                                     contentDescription = "Tocar para escuchar",
                                     tint = if (isPlayingThis) WhatsAppDarkBg else Color.White,
                                     modifier = Modifier.size(16.dp)
