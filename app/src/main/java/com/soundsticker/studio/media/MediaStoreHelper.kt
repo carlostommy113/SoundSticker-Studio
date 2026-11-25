@@ -167,7 +167,7 @@ object MediaStoreHelper {
         }
     }
 
-    fun exportStickerPackToWhatsApp(
+        fun exportStickerPackToWhatsApp(
         activity: Activity,
         packIdentifier: String,
         packName: String,
@@ -180,19 +180,20 @@ object MediaStoreHelper {
                 putExtra(WhatsAppStickerContentProvider.EXTRA_STICKER_PACK_ID, packIdentifier)
                 putExtra(WhatsAppStickerContentProvider.EXTRA_STICKER_PACK_AUTHORITY, WhatsAppStickerContentProvider.AUTHORITY)
                 putExtra(WhatsAppStickerContentProvider.EXTRA_STICKER_PACK_NAME, packName)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 `package` = targetPackage
             }
             activity.startActivityForResult(intent, 200)
             true
         } catch (e: Exception) {
             e.printStackTrace()
-            // If target package intent fails, try generic
             try {
                 val genericIntent = Intent().apply {
                     action = ACTION_ENABLE_STICKER_PACK
                     putExtra(WhatsAppStickerContentProvider.EXTRA_STICKER_PACK_ID, packIdentifier)
                     putExtra(WhatsAppStickerContentProvider.EXTRA_STICKER_PACK_AUTHORITY, WhatsAppStickerContentProvider.AUTHORITY)
                     putExtra(WhatsAppStickerContentProvider.EXTRA_STICKER_PACK_NAME, packName)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 activity.startActivityForResult(genericIntent, 200)
                 true
@@ -203,4 +204,3 @@ object MediaStoreHelper {
             }
         }
     }
-}
