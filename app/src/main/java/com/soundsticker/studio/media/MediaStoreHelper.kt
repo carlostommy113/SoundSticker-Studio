@@ -155,7 +155,6 @@ object MediaStoreHelper {
             context.startActivity(intent)
             true
         } else {
-            // Fallback: try standard WhatsApp or open Play Store
             val fallbackIntent = context.packageManager.getLaunchIntentForPackage(WHATSAPP_PACKAGE)
             if (fallbackIntent != null) {
                 context.startActivity(fallbackIntent)
@@ -167,7 +166,7 @@ object MediaStoreHelper {
         }
     }
 
-        fun exportStickerPackToWhatsApp(
+    fun exportStickerPackToWhatsApp(
         activity: Activity,
         packIdentifier: String,
         packName: String,
@@ -204,3 +203,4 @@ object MediaStoreHelper {
             }
         }
     }
+}
