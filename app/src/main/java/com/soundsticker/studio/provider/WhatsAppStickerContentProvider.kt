@@ -10,7 +10,6 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import com.soundsticker.studio.data.local.StickerStorageManager
 import com.soundsticker.studio.data.model.StickerPack
-import java.io.File
 import java.io.FileNotFoundException
 
 class WhatsAppStickerContentProvider : ContentProvider() {
@@ -43,12 +42,14 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         private const val METADATA_PACK_CODE = 2
         private const val STICKERS_CODE = 3
         private const val STICKERS_ASSET_CODE = 4
+        private const val STICKER_PACK_TRAY_ICON_CODE = 5
 
         private val uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             addURI(AUTHORITY, "metadata", METADATA_CODE)
             addURI(AUTHORITY, "metadata/*", METADATA_PACK_CODE)
             addURI(AUTHORITY, "stickers/*", STICKERS_CODE)
             addURI(AUTHORITY, "stickers_asset/*/*", STICKERS_ASSET_CODE)
+            addURI(AUTHORITY, "stickers_asset/*/tray.webp", STICKER_PACK_TRAY_ICON_CODE)
         }
     }
 
@@ -175,7 +176,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
 
     override fun openAssetFile(uri: Uri, mode: String): AssetFileDescriptor? {
         val match = uriMatcher.match(uri)
-        if (match == STICKERS_ASSET_CODE) {
+        if (match == STICKERS_ASSET_CODE || match == STICKER_PACK_TRAY_ICON_CODE) {
             val segments = uri.pathSegments
             if (segments.size >= 3) {
                 val packId = segments[1]
@@ -199,7 +200,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
             METADATA_CODE -> "vnd.android.cursor.dir/vnd.$AUTHORITY.metadata"
             METADATA_PACK_CODE -> "vnd.android.cursor.item/vnd.$AUTHORITY.metadata"
             STICKERS_CODE -> "vnd.android.cursor.dir/vnd.$AUTHORITY.stickers"
-            STICKERS_ASSET_CODE -> "image/webp"
+            STICKERS_ASSET_CODE, STICKER_PACK_TRAY_ICON_CODE -> "image/webp"
             else -> null
         }
     }
