@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write   # Necesario para crear la release
 
 jobs:
   build:
@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -------------------------------------------------
+      # 1️⃣ Preparación del entorno
+      # -------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -36,23 +39,29 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug APK
+      # -------------------------------------------------
+      # 2️⃣ Compilación (debug + release)
+      # -------------------------------------------------
+      - name: Build Debug & Release APKs
         run: |
+          # Debug (para pruebas rápidas)
           ./gradlew assembleDebug --stacktrace --no-daemon > build.log 2>&1 || {
-            echo "GRADLE ASSEMBLE FAILED! Pushing build.log to ci-build-logs branch..."
-            git config user.name "GitHub Actions"
-            git config user.email "actions@github.com"
-            git checkout -B ci-build-logs
-            git add build.log
-            git commit -m "chore: ci build failure log" || true
-            git push -f origin ci-build-logs || true
-            tail -n 100 build.log
+            echo "GRADLE DEBUG BUILD FAILED!"
             exit 1
           }
-          echo "GRADLE ASSEMBLE SUCCEEDED!"
-          ls -la build.log
+
+          # Release firmado (usa el keystore que ya está configurado en el workflow)
+          ./gradlew assembleRelease --stacktrace --no-daemon >> build.log 2>&1 || {
+            echo "GRADLE RELEASE BUILD FAILED!"
+            exit 1
+          }
+
+          echo "GRADLE BUILD SUCCEEDED!"
           find . -name "*.apk"
 
+      # -------------------------------------------------
+      # 3️⃣ Subida de logs (para depuración)
+      # -------------------------------------------------
       - name: Upload Build Log
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,20 +69,31 @@ jobs:
           name: build-log
           path: build.log
 
-      - name: Verify APK Generation
+      # -------------------------------------------------
+      # 4️⃣ Preparar los APKs como artefactos
+      # -------------------------------------------------
+      - name: Prepare APK artifacts
         run: |
-          echo "Listing all generated APKs:"
-          find . -name "*.apk"
-          APK_FILE=$(find app/build -name "*.apk" | head -n 1)
-          if [ -z "$APK_FILE" ]; then
-            echo "ERROR: No APK found!"
+          # Debug APK
+          DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          # Release APK (firmado)
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+
+          if [ -z "$DEBUG_APK" ] || [ -z "$RELEASE_APK" ]; then
+            echo "ERROR: No se encontró alguno de los APKs."
             exit 1
           fi
-          echo "Selected APK: $APK_FILE"
+
           mkdir -p output_apks
-          cp "$APK_FILE" output_apks/SoundStickerStudio-debug.apk
+          cp "$DEBUG_APK"  output_apks/SoundStickerStudio-debug.apk
+          cp "$RELEASE_APK" output_apks/SoundStickerStudio-release.apk
+
+          echo "APK list:"
           ls -la output_apks/
 
+      # -------------------------------------------------
+      # 5️⃣ Subir los APKs como artefactos (para descarga manual)
+      # -------------------------------------------------
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -81,10 +101,21 @@ jobs:
           path: output_apks/SoundStickerStudio-debug.apk
           retention-days: 30
 
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoundStickerStudio-Release-APK
+          path: output_apks/SoundStickerStudio-release.apk
+          retention-days: 30
+
+      # -------------------------------------------------
+      # 6️⃣ Crear / actualizar la GitHub Release (solo en tags v*)
+      # -------------------------------------------------
       - name: Create GitHub Release on Tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          gh release create "${{ github.ref_name }}" output_apks/SoundStickerStudio-debug.apk \
+          gh release create "${{ github.ref_name }}" \
+            output_apks/SoundStickerStudio-release.apk \
             --title "SoundSticker Studio ${{ github.ref_name }}" \
             --notes "APK oficial compilado automáticamente por GitHub Actions para Android. Compatible con stickers con sonido de WhatsApp."
         env:
