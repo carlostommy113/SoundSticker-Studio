@@ -29,9 +29,9 @@ android {
             val ksFile = rootProject.file("release.keystore")
             if (ksFile.exists()) {
                 storeFile = ksFile
-                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: ""
-                keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: ""
-                keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+                storePassword = (System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "").trim()
+                keyAlias = (System.getenv("RELEASE_KEY_ALIAS") ?: "").trim()
+                keyPassword = (System.getenv("RELEASE_KEY_PASSWORD") ?: "").trim()
             }
         }
     }
