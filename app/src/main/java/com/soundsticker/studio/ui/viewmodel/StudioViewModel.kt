@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 
 data class StudioUiState(
     val currentMode: CreationMode = CreationMode.PHOTO_AUDIO,
@@ -221,18 +222,19 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
             audioPlayer.stop()
             _uiState.update { it.copy(isPlayingVideoLoop = false) }
         } else {
+            if (state.keepVideoAudio) {
+                audioPlayer.play(
+                    fileOrUri = uri,
+                    startMs = state.videoStartMs.toInt(),
+                    endMs = state.videoEndMs.toInt(),
+                    loopCount = 3
+                )
+            }
             _uiState.update { it.copy(isPlayingVideoLoop = true) }
-            audioPlayer.play(
-                fileOrUri = uri,
-                startMs = state.videoStartMs.toInt(),
-                endMs = state.videoEndMs.toInt(),
-                loopCount = 3
-            )
         }
     }
 
-    // --- Save & Export Operations ---
-
+    // --- Save Actions ---
     fun savePhotoAudioSticker(packId: String = "my_sound_stickers", packName: String = "Mis SoundStickers") {
         val state = _uiState.value
         val photoUri = state.photoUri ?: run {
@@ -252,17 +254,17 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 val destTrayFile = File(packDir, "tray.webp")
                 val destAudioFile = File(packDir, audioFileName)
 
-                // 1. Process 512x512 Meme Sticker WebP & Tray
+                // 1. Process 512x512 Meme Sticker WebP & Tray (96x96)
                 val imageOk = ImageMemeComposer.processImageWithMemeText(
                     context = getApplication(),
                     imageUri = photoUri,
                     topText = state.memeTopText,
                     bottomText = state.memeBottomText,
                     destStickerFile = destStickerFile,
-                    destTrayFile = if (!destTrayFile.exists()) destTrayFile else null
+                    destTrayFile = destTrayFile
                 )
 
-                // 2. Process / Trim Audio
+                // 2. Process / Trim Audio (con respaldo directo si no recorta)
                 var finalAudioName: String? = null
                 if (state.audioFile != null && state.audioFile.exists()) {
                     state.audioFile.copyTo(destAudioFile, overwrite = true)
@@ -275,7 +277,21 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                         startMs = state.audioStartMs,
                         endMs = state.audioEndMs
                     )
-                    if (trimmed) finalAudioName = audioFileName
+                    if (trimmed && destAudioFile.exists() && destAudioFile.length() > 0) {
+                        finalAudioName = audioFileName
+                    } else {
+                        // Respaldo de copia directa
+                        try {
+                            getApplication<Application>().contentResolver.openInputStream(state.importedAudioUri)?.use { input ->
+                                FileOutputStream(destAudioFile).use { out -> input.copyTo(out) }
+                            }
+                            if (destAudioFile.exists() && destAudioFile.length() > 0) {
+                                finalAudioName = audioFileName
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
 
                 if (imageOk) {
@@ -329,33 +345,49 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
 
                 val packDir = storageManager.getPackDir(packId)
                 val destStickerFile = File(packDir, stickerFileName)
+                val destTrayFile = File(packDir, "tray.webp")
                 val destAudioFile = File(packDir, audioFileName)
 
-                // 1. Extract 512x512 preview frame WebP
-                val frameOk = VideoProcessorHelper.extractFrameAtTime(
+                val frameBitmap = VideoProcessorHelper.extractVideoFrameAt(
                     context = getApplication(),
                     videoUri = videoUri,
-                    timeMs = state.videoStartMs,
-                    destStickerFile = destStickerFile
+                    timeUs = state.videoStartMs * 1000L
                 )
 
-                // 2. Extract trimmed audio
-                if (state.keepVideoAudio) {
-                    AudioTrimmerHelper.trimAudio(
-                        context = getApplication(),
-                        inputUri = videoUri,
-                        destFile = destAudioFile,
-                        startMs = state.videoStartMs,
-                        endMs = state.videoEndMs
-                    )
-                }
+                if (frameBitmap != null) {
+                    val tempImgFile = File(getApplication<Application>().cacheDir, "temp_v_frame.png")
+                    FileOutputStream(tempImgFile).use { out ->
+                        frameBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                    }
 
-                if (frameOk) {
+                    ImageMemeComposer.processImageWithMemeText(
+                        context = getApplication(),
+                        imageUri = Uri.fromFile(tempImgFile),
+                        topText = null,
+                        bottomText = null,
+                        destStickerFile = destStickerFile,
+                        destTrayFile = destTrayFile
+                    )
+
+                    var finalAudioName: String? = null
+                    if (state.keepVideoAudio) {
+                        val extracted = VideoProcessorHelper.extractAudioFromVideo(
+                            context = getApplication(),
+                            videoUri = videoUri,
+                            destAudioFile = destAudioFile,
+                            startMs = state.videoStartMs,
+                            endMs = state.videoEndMs
+                        )
+                        if (extracted && destAudioFile.exists() && destAudioFile.length() > 0) {
+                            finalAudioName = audioFileName
+                        }
+                    }
+
                     val stickerItem = StickerItem(
                         imageFileName = stickerFileName,
-                        audioFileName = if (destAudioFile.exists()) audioFileName else null,
+                        audioFileName = finalAudioName,
                         durationMs = state.videoEndMs - state.videoStartMs,
-                        isAnimated = true
+                        isAnimated = false
                     )
 
                     storageManager.addStickerToPack(packId, stickerItem, packName)
@@ -391,7 +423,6 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 var savedPath: String? = null
 
                 if (state.currentMode == CreationMode.VIDEO_TO_STICKER && state.videoUri != null) {
-                    // Export 5-second video clip to Movies/SoundStickers
                     val tempClipFile = File(getApplication<Application>().cacheDir, "kit_clip_${System.currentTimeMillis()}.mp4")
                     val trimmed = VideoProcessorHelper.trimVideoSegment(
                         context = getApplication(),
@@ -402,11 +433,10 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                         keepAudio = state.keepVideoAudio
                     )
                     if (trimmed) {
-                        val uri = MediaStoreHelper.saveVideoKitToMovies(getApplication(), tempClipFile)
+                        MediaStoreHelper.saveVideoKitToMovies(getApplication(), tempClipFile)
                         savedPath = "Movies/SoundStickers/ (Clip 5s con sonido)"
                     }
                 } else if (state.photoUri != null) {
-                    // Export image + trimmed audio
                     val tempImg = File(getApplication<Application>().cacheDir, "kit_img_${System.currentTimeMillis()}.webp")
                     ImageMemeComposer.processImageWithMemeText(
                         context = getApplication(),
@@ -418,11 +448,20 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
 
                     val audioTarget = state.audioFile ?: if (state.importedAudioUri != null) {
                         val tempAudio = File(getApplication<Application>().cacheDir, "kit_aud_${System.currentTimeMillis()}.m4a")
-                        AudioTrimmerHelper.trimAudio(getApplication(), state.importedAudioUri, tempAudio, state.audioStartMs, state.audioEndMs)
+                        val trimmed = AudioTrimmerHelper.trimAudio(getApplication(), state.importedAudioUri, tempAudio, state.audioStartMs, state.audioEndMs)
+                        if (!trimmed || !tempAudio.exists() || tempAudio.length() == 0L) {
+                            try {
+                                getApplication<Application>().contentResolver.openInputStream(state.importedAudioUri)?.use { input ->
+                                    FileOutputStream(tempAudio).use { out -> input.copyTo(out) }
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
                         tempAudio
                     } else null
 
-                    val (imgUri, audUri) = MediaStoreHelper.savePhotoAndAudioKit(getApplication(), tempImg, audioTarget)
+                    MediaStoreHelper.savePhotoAndAudioKit(getApplication(), tempImg, audioTarget)
                     savedPath = "Pictures/SoundStickers/ y Music/SoundStickers/"
                 }
 
