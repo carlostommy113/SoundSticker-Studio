@@ -20,23 +20,24 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         const val EXTRA_STICKER_PACK_AUTHORITY = "sticker_pack_authority"
         const val EXTRA_STICKER_PACK_NAME = "sticker_pack_name"
 
-        const val STICKER_PACK_IDENTIFIER = "sticker_pack_identifier"
-        const val STICKER_PACK_NAME = "sticker_pack_name"
-        const val STICKER_PACK_PUBLISHER = "sticker_pack_publisher"
-        const val STICKER_PACK_ICON = "sticker_pack_icon"
-        const val ANDROID_APP_DOWNLOAD_LINK = "android_play_store_link"
-        const val IOS_APP_DOWNLOAD_LINK = "ios_app_store_link"
-        const val PUBLISHER_EMAIL = "publisher_email"
-        const val PUBLISHER_WEBSITE = "publisher_website"
-        const val PRIVACY_POLICY_WEBSITE = "privacy_policy_website"
-        const val LICENSE_AGREEMENT_WEBSITE = "license_agreement_website"
+        // Constantes oficiales e inalterables requeridas por WhatsApp
+        const val STICKER_PACK_IDENTIFIER_IN_QUERY = "sticker_pack_identifier"
+        const val STICKER_PACK_NAME_IN_QUERY = "sticker_pack_name"
+        const val STICKER_PACK_PUBLISHER_IN_QUERY = "sticker_pack_publisher"
+        const val STICKER_PACK_ICON_IN_QUERY = "sticker_pack_icon"
+        const val ANDROID_APP_DOWNLOAD_LINK_IN_QUERY = "android_play_store_link"
+        const val IOS_APP_DOWNLOAD_LINK_IN_QUERY = "ios_app_download_link"
+        const val PUBLISHER_EMAIL = "sticker_pack_publisher_email"
+        const val PUBLISHER_WEBSITE = "sticker_pack_publisher_website"
+        const val PRIVACY_POLICY_WEBSITE = "sticker_pack_privacy_policy_website"
+        const val LICENSE_AGREEMENT_WEBSITE = "sticker_pack_license_agreement_website"
         const val IMAGE_DATA_VERSION = "image_data_version"
-        const val AVOID_CACHE = "avoid_cache"
+        const val AVOID_CACHE = "whatsapp_will_not_cache_stickers"
         const val ANIMATED_STICKER_PACK = "animated_sticker_pack"
 
-        const val STICKER_FILE_NAME = "sticker_file_name"
-        const val STICKER_EMOJI = "sticker_emojis"
-        const val STICKER_ACCESSIBILITY_LABEL = "sticker_accessibility_label"
+        const val STICKER_FILE_NAME_IN_QUERY = "sticker_file_name"
+        const val STICKER_FILE_EMOJI_IN_QUERY = "sticker_emoji"
+        const val STICKER_FILE_ACCESSIBILITY_TEXT_IN_QUERY = "sticker_accessibility_text"
 
         private const val METADATA_CODE = 1
         private const val METADATA_PACK_CODE = 2
@@ -90,12 +91,12 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         val packs = getStorage().getAllPacks()
         val cursor = MatrixCursor(
             arrayOf(
-                STICKER_PACK_IDENTIFIER,
-                STICKER_PACK_NAME,
-                STICKER_PACK_PUBLISHER,
-                STICKER_PACK_ICON,
-                ANDROID_APP_DOWNLOAD_LINK,
-                IOS_APP_DOWNLOAD_LINK,
+                STICKER_PACK_IDENTIFIER_IN_QUERY,
+                STICKER_PACK_NAME_IN_QUERY,
+                STICKER_PACK_PUBLISHER_IN_QUERY,
+                STICKER_PACK_ICON_IN_QUERY,
+                ANDROID_APP_DOWNLOAD_LINK_IN_QUERY,
+                IOS_APP_DOWNLOAD_LINK_IN_QUERY,
                 PUBLISHER_EMAIL,
                 PUBLISHER_WEBSITE,
                 PRIVACY_POLICY_WEBSITE,
@@ -115,12 +116,12 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         val pack = getStorage().getPack(packId) ?: return null
         val cursor = MatrixCursor(
             arrayOf(
-                STICKER_PACK_IDENTIFIER,
-                STICKER_PACK_NAME,
-                STICKER_PACK_PUBLISHER,
-                STICKER_PACK_ICON,
-                ANDROID_APP_DOWNLOAD_LINK,
-                IOS_APP_DOWNLOAD_LINK,
+                STICKER_PACK_IDENTIFIER_IN_QUERY,
+                STICKER_PACK_NAME_IN_QUERY,
+                STICKER_PACK_PUBLISHER_IN_QUERY,
+                STICKER_PACK_ICON_IN_QUERY,
+                ANDROID_APP_DOWNLOAD_LINK_IN_QUERY,
+                IOS_APP_DOWNLOAD_LINK_IN_QUERY,
                 PUBLISHER_EMAIL,
                 PUBLISHER_WEBSITE,
                 PRIVACY_POLICY_WEBSITE,
@@ -156,13 +157,13 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         val pack = getStorage().getPack(packId) ?: return null
         val cursor = MatrixCursor(
             arrayOf(
-                STICKER_FILE_NAME,
-                STICKER_EMOJI,
-                STICKER_ACCESSIBILITY_LABEL
+                STICKER_FILE_NAME_IN_QUERY,
+                STICKER_FILE_EMOJI_IN_QUERY,
+                STICKER_FILE_ACCESSIBILITY_TEXT_IN_QUERY
             )
         )
         for (sticker in pack.stickers) {
-            val emojiList = if (sticker.emojis.isEmpty()) "🎵,✨" else sticker.emojis.joinToString(",")
+            val emojiList = if (sticker.emojis.isEmpty()) "🎵,✨" else sticker.emojis.take(3).joinToString(",")
             cursor.addRow(
                 arrayOf(
                     sticker.imageFileName,
@@ -188,19 +189,16 @@ class WhatsAppStickerContentProvider : ContentProvider() {
                 }
             }
         }
-        throw FileNotFoundException("Asset not found for URI: $uri")
+        return null // Devuelve null en lugar de lanzar excepción, como en la implementación oficial
     }
 
     override fun getType(uri: Uri): String? {
-        val segments = uri.pathSegments
-        if (segments.isNotEmpty() && segments.last().endsWith(".png")) {
-            return "image/png"
-        }
         return when (uriMatcher.match(uri)) {
             METADATA_CODE -> "vnd.android.cursor.dir/vnd.$AUTHORITY.metadata"
             METADATA_PACK_CODE -> "vnd.android.cursor.item/vnd.$AUTHORITY.metadata"
             STICKERS_CODE -> "vnd.android.cursor.dir/vnd.$AUTHORITY.stickers"
-            STICKERS_ASSET_CODE, STICKER_PACK_TRAY_ICON_CODE -> "image/webp"
+            STICKERS_ASSET_CODE -> "image/webp"
+            STICKER_PACK_TRAY_ICON_CODE -> "image/webp"
             else -> null
         }
     }
