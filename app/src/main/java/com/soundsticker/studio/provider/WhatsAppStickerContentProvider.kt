@@ -3,6 +3,7 @@ package com.soundsticker.studio.provider
 import android.content.ContentProvider
 import android.content.ContentValues
 import android.content.UriMatcher
+import android.content.res.AssetFileDescriptor
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
@@ -170,7 +171,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         return cursor
     }
 
-    override fun openAssetFile(uri: Uri, mode: String): ParcelFileDescriptor? {
+    override fun openAssetFile(uri: Uri, mode: String): AssetFileDescriptor? {
         val match = uriMatcher.match(uri)
         if (match == STICKERS_ASSET_CODE) {
             val segments = uri.pathSegments
@@ -179,7 +180,8 @@ class WhatsAppStickerContentProvider : ContentProvider() {
                 val fileName = segments[2]
                 val file = storageManager.getStickerFile(packId, fileName)
                 if (file.exists()) {
-                    return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                    val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                    return AssetFileDescriptor(pfd, 0, AssetFileDescriptor.UNKNOWN_LENGTH)
                 }
             }
         }
