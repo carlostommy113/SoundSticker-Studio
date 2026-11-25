@@ -69,7 +69,7 @@ class WhatsAppStickerContentProvider : ContentProvider() {
         sortOrder: String?
     ): Cursor? {
         val code = uriMatcher.match(uri)
-        return when (code) {
+        val cursor = when (code) {
             METADATA_CODE -> getAllPacksCursor()
             METADATA_PACK_CODE -> {
                 val packId = uri.lastPathSegment ?: return null
@@ -81,6 +81,8 @@ class WhatsAppStickerContentProvider : ContentProvider() {
             }
             else -> null
         }
+        cursor?.setNotificationUri(context?.contentResolver, uri)
+        return cursor
     }
 
     private fun getAllPacksCursor(): Cursor {
@@ -189,6 +191,10 @@ class WhatsAppStickerContentProvider : ContentProvider() {
     }
 
     override fun getType(uri: Uri): String? {
+        val segments = uri.pathSegments
+        if (segments.isNotEmpty() && segments.last().endsWith(".png")) {
+            return "image/png"
+        }
         return when (uriMatcher.match(uri)) {
             METADATA_CODE -> "vnd.android.cursor.dir/vnd.$AUTHORITY.metadata"
             METADATA_PACK_CODE -> "vnd.android.cursor.item/vnd.$AUTHORITY.metadata"
