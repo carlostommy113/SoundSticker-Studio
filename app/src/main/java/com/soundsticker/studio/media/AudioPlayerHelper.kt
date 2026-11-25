@@ -1,11 +1,13 @@
 package com.soundsticker.studio.media
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import java.io.File
+import java.io.FileInputStream
 
 class AudioPlayerHelper(private val context: Context) {
 
@@ -27,11 +29,32 @@ class AudioPlayerHelper(private val context: Context) {
         stop()
 
         try {
-            val player = MediaPlayer()
+            val player = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+            }
+
             when (fileOrUri) {
-                is File -> player.setDataSource(fileOrUri.absolutePath)
+                is File -> {
+                    FileInputStream(fileOrUri).use { fis ->
+                        player.setDataSource(fis.fd)
+                    }
+                }
                 is Uri -> player.setDataSource(context, fileOrUri)
-                is String -> player.setDataSource(fileOrUri)
+                is String -> {
+                    val file = File(fileOrUri)
+                    if (file.exists()) {
+                        FileInputStream(file).use { fis ->
+                            player.setDataSource(fis.fd)
+                        }
+                    } else {
+                        player.setDataSource(fileOrUri)
+                    }
+                }
                 else -> return
             }
 
