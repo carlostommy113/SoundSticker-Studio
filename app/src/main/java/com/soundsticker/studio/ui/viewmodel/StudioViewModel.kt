@@ -219,8 +219,27 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun setKeepVideoAudio(keep: Boolean) {
+    fun toggleVideoAudio(keep: Boolean) {
         _uiState.update { it.copy(keepVideoAudio = keep) }
+    }
+
+    fun playVideoLoopPreview() {
+        val state = _uiState.value
+        val uri = state.videoUri ?: return
+        if (state.isPlayingVideoLoop) {
+            audioPlayer.stop()
+            _uiState.update { it.copy(isPlayingVideoLoop = false) }
+        } else {
+            if (state.keepVideoAudio) {
+                audioPlayer.play(
+                    fileOrUri = uri,
+                    startMs = state.videoStartMs.toInt(),
+                    endMs = state.videoEndMs.toInt(),
+                    loopCount = 3
+                )
+            }
+            _uiState.update { it.copy(isPlayingVideoLoop = true) }
+        }
     }
 
     // --- Save & Export Actions ---
