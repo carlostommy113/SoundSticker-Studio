@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # Necesario para crear la release
+  contents: write
 
 jobs:
   build:
@@ -17,9 +17,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # -------------------------------------------------
-      # 1️⃣ Preparación del entorno
-      # -------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -31,6 +28,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Decode release keystore
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          echo "$RELEASE_KEYSTORE_B64" | base64 -d > release.keystore
+          echo "Keystore decoded OK ($(stat -c%s release.keystore) bytes)"
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -39,29 +43,27 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # -------------------------------------------------
-      # 2️⃣ Compilación (debug + release)
-      # -------------------------------------------------
       - name: Build Debug & Release APKs
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          # Debug (para pruebas rápidas)
           ./gradlew assembleDebug --stacktrace --no-daemon > build.log 2>&1 || {
-            echo "GRADLE DEBUG BUILD FAILED!"
+            echo "DEBUG BUILD FAILED!"
+            tail -n 80 build.log
             exit 1
           }
 
-          # Release firmado (usa el keystore que ya está configurado en el workflow)
           ./gradlew assembleRelease --stacktrace --no-daemon >> build.log 2>&1 || {
-            echo "GRADLE RELEASE BUILD FAILED!"
+            echo "RELEASE BUILD FAILED!"
+            tail -n 80 build.log
             exit 1
           }
 
-          echo "GRADLE BUILD SUCCEEDED!"
+          echo "BUILD SUCCEEDED!"
           find . -name "*.apk"
 
-      # -------------------------------------------------
-      # 3️⃣ Subida de logs (para depuración)
-      # -------------------------------------------------
       - name: Upload Build Log
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,54 +71,46 @@ jobs:
           name: build-log
           path: build.log
 
-      # -------------------------------------------------
-      # 4️⃣ Preparar los APKs como artefactos
-      # -------------------------------------------------
       - name: Prepare APK artifacts
         run: |
-          # Debug APK
           DEBUG_APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
-          # Release APK (firmado)
           RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
 
           if [ -z "$DEBUG_APK" ] || [ -z "$RELEASE_APK" ]; then
-            echo "ERROR: No se encontró alguno de los APKs."
+            echo "ERROR: APK not found!"
+            find app/build -name "*.apk" || true
             exit 1
           fi
 
           mkdir -p output_apks
-          cp "$DEBUG_APK"  output_apks/SoundStickerStudio-debug.apk
+          cp "$DEBUG_APK"   output_apks/SoundStickerStudio-debug.apk
           cp "$RELEASE_APK" output_apks/SoundStickerStudio-release.apk
-
-          echo "APK list:"
           ls -la output_apks/
 
-      # -------------------------------------------------
-      # 5️⃣ Subir los APKs como artefactos (para descarga manual)
-      # -------------------------------------------------
-      - name: Upload Debug APK Artifact
+      - name: Verify APK signature
+        run: |
+          $ANDROID_HOME/build-tools/$(ls $ANDROID_HOME/build-tools/ | tail -n1)/apksigner verify -v output_apks/SoundStickerStudio-release.apk
+
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: SoundStickerStudio-Debug-APK
           path: output_apks/SoundStickerStudio-debug.apk
           retention-days: 30
 
-      - name: Upload Release APK Artifact
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: SoundStickerStudio-Release-APK
           path: output_apks/SoundStickerStudio-release.apk
           retention-days: 30
 
-      # -------------------------------------------------
-      # 6️⃣ Crear / actualizar la GitHub Release (solo en tags v*)
-      # -------------------------------------------------
       - name: Create GitHub Release on Tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           gh release create "${{ github.ref_name }}" \
             output_apks/SoundStickerStudio-release.apk \
             --title "SoundSticker Studio ${{ github.ref_name }}" \
-            --notes "APK oficial compilado automáticamente por GitHub Actions para Android. Compatible con stickers con sonido de WhatsApp."
+            --notes "APK oficial firmado y compilado por GitHub Actions. Compatible con stickers con sonido de WhatsApp."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
