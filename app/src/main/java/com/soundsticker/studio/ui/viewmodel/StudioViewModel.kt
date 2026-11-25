@@ -146,95 +146,84 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         audioPlayer.stop()
         viewModelScope.launch(Dispatchers.IO) {
             val duration = AudioTrimmerHelper.getDurationMs(getApplication(), uri)
-            val end = duration.coerceAtMost(10_000L)
+            val effectiveDuration = if (duration > 0) duration else 10_000L
+            val endTrim = effectiveDuration.coerceAtMost(10_000L)
             _uiState.update {
                 it.copy(
                     importedAudioUri = uri,
                     audioFile = null,
-                    audioDurationMs = duration,
+                    audioDurationMs = effectiveDuration,
                     audioStartMs = 0L,
-                    audioEndMs = end
+                    audioEndMs = endTrim
                 )
             }
         }
     }
 
-    fun setAudioTrimRange(start: Long, end: Long) {
+    fun setAudioTrimRange(startMs: Long, endMs: Long) {
         _uiState.update {
             it.copy(
-                audioStartMs = start,
-                audioEndMs = end
+                audioStartMs = startMs,
+                audioEndMs = endMs
             )
         }
     }
 
     fun toggleAudioPreview() {
-        val state = _uiState.value
-        if (state.isPlayingAudio) {
+        if (_uiState.value.isPlayingAudio) {
             audioPlayer.stop()
-            _uiState.update { it.copy(isPlayingAudio = false, audioPlaybackProgress = 0f) }
+            _uiState.update { it.copy(isPlayingAudio = false) }
         } else {
-            val target = state.audioFile ?: state.importedAudioUri ?: return
-            _uiState.update { it.copy(isPlayingAudio = true) }
-            audioPlayer.play(
-                fileOrUri = target,
-                startMs = state.audioStartMs.toInt(),
-                endMs = state.audioEndMs.toInt(),
-                loopCount = 1
-            )
+            val state = _uiState.value
+            val target: Any? = state.audioFile ?: state.importedAudioUri
+            if (target != null) {
+                _uiState.update { it.copy(isPlayingAudio = true) }
+                audioPlayer.play(
+                    fileOrUri = target,
+                    startMs = state.audioStartMs.toInt(),
+                    endMs = state.audioEndMs.toInt()
+                )
+            }
         }
     }
 
-    // --- Video Actions ---
-    fun selectVideo(uri: Uri) {
+    // --- Video to Sticker Actions ---
+    fun selectVideo(uri: Uri?) {
         audioPlayer.stop()
+        if (uri == null) {
+            _uiState.update { it.copy(videoUri = null) }
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             val duration = VideoProcessorHelper.getVideoDurationMs(getApplication(), uri)
-            val end = duration.coerceAtMost(5_000L)
+            val effectiveDuration = if (duration > 0) duration else 5_000L
+            val endTrim = effectiveDuration.coerceAtMost(5_000L)
             _uiState.update {
                 it.copy(
                     videoUri = uri,
-                    videoDurationMs = duration,
+                    videoDurationMs = effectiveDuration,
                     videoStartMs = 0L,
-                    videoEndMs = end
+                    videoEndMs = endTrim
                 )
             }
         }
     }
 
-    fun setVideoTrimRange(start: Long, end: Long) {
+    fun setVideoTrimRange(startMs: Long, endMs: Long) {
         _uiState.update {
             it.copy(
-                videoStartMs = start,
-                videoEndMs = end
+                videoStartMs = startMs,
+                videoEndMs = endMs
             )
         }
     }
 
-    fun toggleVideoAudio(keep: Boolean) {
+    fun setKeepVideoAudio(keep: Boolean) {
         _uiState.update { it.copy(keepVideoAudio = keep) }
     }
 
-    fun playVideoLoopPreview() {
-        val state = _uiState.value
-        val uri = state.videoUri ?: return
-        if (state.isPlayingVideoLoop) {
-            audioPlayer.stop()
-            _uiState.update { it.copy(isPlayingVideoLoop = false) }
-        } else {
-            if (state.keepVideoAudio) {
-                audioPlayer.play(
-                    fileOrUri = uri,
-                    startMs = state.videoStartMs.toInt(),
-                    endMs = state.videoEndMs.toInt(),
-                    loopCount = 3
-                )
-            }
-            _uiState.update { it.copy(isPlayingVideoLoop = true) }
-        }
-    }
-
-    // --- Save Actions ---
+    // --- Save & Export Actions ---
     fun savePhotoAudioSticker(packId: String = "my_sound_stickers", packName: String = "Mis SoundStickers") {
         val state = _uiState.value
         val photoUri = state.photoUri ?: run {
@@ -247,12 +236,10 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val time = System.currentTimeMillis()
                 val stickerFileName = "sticker_$time.webp"
-                val audioFileName = "audio_$time.m4a"
 
                 val packDir = storageManager.getPackDir(packId)
                 val destStickerFile = File(packDir, stickerFileName)
                 val destTrayFile = File(packDir, "tray.webp")
-                val destAudioFile = File(packDir, audioFileName)
 
                 // 1. Process 512x512 Meme Sticker WebP & Tray (96x96)
                 val imageOk = ImageMemeComposer.processImageWithMemeText(
@@ -264,33 +251,42 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                     destTrayFile = destTrayFile
                 )
 
-                // 2. Process / Trim Audio (con respaldo directo si no recorta)
+                // 2. Process Audio (soporte universal MP3, M4A, etc.)
                 var finalAudioName: String? = null
                 if (state.audioFile != null && state.audioFile.exists()) {
+                    val audioFileName = "audio_$time.m4a"
+                    val destAudioFile = File(packDir, audioFileName)
                     state.audioFile.copyTo(destAudioFile, overwrite = true)
                     finalAudioName = audioFileName
                 } else if (state.importedAudioUri != null) {
-                    val trimmed = AudioTrimmerHelper.trimAudio(
-                        context = getApplication(),
-                        inputUri = state.importedAudioUri,
-                        destFile = destAudioFile,
-                        startMs = state.audioStartMs,
-                        endMs = state.audioEndMs
-                    )
-                    if (trimmed && destAudioFile.exists() && destAudioFile.length() > 0) {
-                        finalAudioName = audioFileName
-                    } else {
-                        // Respaldo de copia directa
+                    val mimeType = getApplication<Application>().contentResolver.getType(state.importedAudioUri)
+                    val ext = if (mimeType?.contains("mpeg") == true || mimeType?.contains("mp3") == true) "mp3" else "m4a"
+                    val audioFileName = "audio_$time.$ext"
+                    val destAudioFile = File(packDir, audioFileName)
+
+                    var trimmed = false
+                    if (ext == "m4a") {
+                        trimmed = AudioTrimmerHelper.trimAudio(
+                            context = getApplication(),
+                            inputUri = state.importedAudioUri,
+                            destFile = destAudioFile,
+                            startMs = state.audioStartMs,
+                            endMs = state.audioEndMs
+                        )
+                    }
+
+                    if (!trimmed || !destAudioFile.exists() || destAudioFile.length() == 0L) {
                         try {
                             getApplication<Application>().contentResolver.openInputStream(state.importedAudioUri)?.use { input ->
                                 FileOutputStream(destAudioFile).use { out -> input.copyTo(out) }
                             }
-                            if (destAudioFile.exists() && destAudioFile.length() > 0) {
-                                finalAudioName = audioFileName
-                            }
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
+                    }
+
+                    if (destAudioFile.exists() && destAudioFile.length() > 0) {
+                        finalAudioName = audioFileName
                     }
                 }
 
@@ -304,19 +300,11 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                         isAnimated = false
                     )
 
-                    // Ensure minimum 3 stickers in the pack for WhatsApp requirement
+                    // Guarda ÚNICAMENTE este sticker (sin duplicar copias falsas)
                     storageManager.addStickerToPack(packId, stickerItem, packName)
-                    val currentPack = storageManager.getPack(packId)
-                    if (currentPack != null && currentPack.stickers.size < 3) {
-                        for (i in currentPack.stickers.size until 3) {
-                            val cloneFileName = "sticker_${time}_$i.webp"
-                            destStickerFile.copyTo(File(packDir, cloneFileName), overwrite = true)
-                            storageManager.addStickerToPack(packId, stickerItem.copy(imageFileName = cloneFileName), packName)
-                        }
-                    }
 
                     loadPacks()
-                    showToast("¡Sticker añadido con éxito al pack!")
+                    showToast("¡Sticker añadido con éxito!")
                 } else {
                     showToast("Error al procesar la imagen")
                 }
@@ -340,8 +328,8 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val time = System.currentTimeMillis()
-                val stickerFileName = "sticker_video_$time.webp"
-                val audioFileName = "audio_video_$time.m4a"
+                val stickerFileName = "video_sticker_$time.webp"
+                val audioFileName = "video_audio_$time.m4a"
 
                 val packDir = storageManager.getPackDir(packId)
                 val destStickerFile = File(packDir, stickerFileName)
@@ -360,39 +348,29 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                         destStickerFile.copyTo(destTrayFile, overwrite = true)
                     }
 
-                    var finalAudioName: String? = null
+                    var hasAudio = false
                     if (state.keepVideoAudio) {
-                        val trimmed = AudioTrimmerHelper.trimAudio(
+                        val extracted = AudioTrimmerHelper.trimAudio(
                             context = getApplication(),
                             inputUri = videoUri,
                             destFile = destAudioFile,
                             startMs = state.videoStartMs,
                             endMs = state.videoEndMs
                         )
-                        if (trimmed && destAudioFile.exists() && destAudioFile.length() > 0) {
-                            finalAudioName = audioFileName
-                        }
+                        hasAudio = extracted && destAudioFile.exists() && destAudioFile.length() > 0
                     }
 
                     val stickerItem = StickerItem(
                         imageFileName = stickerFileName,
-                        audioFileName = finalAudioName,
+                        audioFileName = if (hasAudio) audioFileName else null,
                         durationMs = state.videoEndMs - state.videoStartMs,
                         isAnimated = false
                     )
 
                     storageManager.addStickerToPack(packId, stickerItem, packName)
-                    val currentPack = storageManager.getPack(packId)
-                    if (currentPack != null && currentPack.stickers.size < 3) {
-                        for (i in currentPack.stickers.size until 3) {
-                            val cloneFileName = "sticker_video_${time}_$i.webp"
-                            destStickerFile.copyTo(File(packDir, cloneFileName), overwrite = true)
-                            storageManager.addStickerToPack(packId, stickerItem.copy(imageFileName = cloneFileName), packName)
-                        }
-                    }
 
                     loadPacks()
-                    showToast("¡Sticker animado añadido al pack!")
+                    showToast("¡Sticker añadido al pack!")
                 } else {
                     showToast("Error al extraer fotograma del video")
                 }
@@ -482,6 +460,11 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun exportPackToWhatsApp(activity: Activity, packId: String, packName: String, useBusiness: Boolean = false) {
+        val pack = storageManager.getPack(packId)
+        if (pack == null || pack.stickers.size < 3) {
+            showToast("WhatsApp requiere un mínimo de 3 stickers en el pack para poder añadirlo (tienes ${pack?.stickers?.size ?: 0})")
+            return
+        }
         MediaStoreHelper.exportStickerPackToWhatsApp(activity, packId, packName, useBusiness)
     }
 
@@ -496,7 +479,7 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         val audioName = sticker.audioFileName
         if (audioName != null) {
             val audioFile = storageManager.getStickerFile(packId, audioName)
-            if (audioFile.exists()) {
+            if (audioFile.exists() && audioFile.length() > 0) {
                 _uiState.update { it.copy(playingStickerAudioKey = key) }
                 audioPlayer.play(audioFile, loopCount = 3)
                 return
