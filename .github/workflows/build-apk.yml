@@ -85,21 +85,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           gh release create "${{ github.ref_name }}" output_apks/SoundStickerStudio-debug.apk \
-            --title "SoundSticker Studio ${{ github.ref_name }} 🎵✨" \
-            --notes "### SoundSticker Studio ${{ github.ref_name }} 🎵✨
-
-¡Nueva versión generada automáticamente por GitHub Actions!
-
-#### Novedades:
-- Compatibilidad completa con stickers con sonido para WhatsApp.
-- Modo Foto + Audio (recorte 1:1 512x512 y recorte de audio de hasta 10s).
-- Modo Video a Sticker Animado (hasta 5s con previsualización en bucle x3).
-- Exportación nativa mediante WhatsApp Sticker ContentProvider (\`com.whatsapp.sticker.READ\`).
-- Guardado directo del 'Kit para Sticker con Sonido' en la carpeta \`Movies/SoundStickers\`.
-- Soporte para WhatsApp estándar (\`com.whatsapp\`) y WhatsApp Business (\`com.whatsapp.w4b\`).
-
-#### Instalación:
-1. Descarga el archivo \`SoundStickerStudio-debug.apk\` adjunto abajo.
-2. En tu dispositivo Android, abre el archivo y permite la instalación."
+            --title "SoundSticker Studio ${{ github.ref_name }}" \
+            --notes "APK oficial compilado automáticamente por GitHub Actions para Android. Compatible con stickers con sonido de WhatsApp."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
