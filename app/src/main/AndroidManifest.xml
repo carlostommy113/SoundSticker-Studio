@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
@@ -46,7 +47,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Official WhatsApp Sticker Content Provider con el permiso exacto requerido por WhatsApp -->
+        <!-- Official WhatsApp Sticker Content Provider -->
         <provider
             android:name=".provider.WhatsAppStickerContentProvider"
             android:authorities="com.soundsticker.studio.stickercontentprovider"
