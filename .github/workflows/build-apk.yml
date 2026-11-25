@@ -38,17 +38,20 @@ jobs:
 
       - name: Build Debug APK
         run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon 2>&1 | tee build.log || BUILD_FAILED=1
-          if [ "$BUILD_FAILED" = "1" ]; then
-            echo "Build failed. Pushing log to ci-build-logs branch..."
+          ./gradlew assembleDebug --stacktrace --no-daemon > build.log 2>&1 || {
+            echo "GRADLE ASSEMBLE FAILED! Pushing build.log to ci-build-logs branch..."
             git config user.name "GitHub Actions"
             git config user.email "actions@github.com"
             git checkout -B ci-build-logs
             git add build.log
             git commit -m "chore: ci build failure log" || true
             git push -f origin ci-build-logs || true
+            tail -n 100 build.log
             exit 1
-          fi
+          }
+          echo "GRADLE ASSEMBLE SUCCEEDED!"
+          ls -la build.log
+          find . -name "*.apk"
 
       - name: Upload Build Log
         if: always()
@@ -59,10 +62,16 @@ jobs:
 
       - name: Verify APK Generation
         run: |
-          echo "Listing generated APKs:"
-          find app/build/outputs/apk/ -name "*.apk"
+          echo "Listing all generated APKs:"
+          find . -name "*.apk"
+          APK_FILE=$(find app/build -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "ERROR: No APK found!"
+            exit 1
+          fi
+          echo "Selected APK: $APK_FILE"
           mkdir -p output_apks
-          cp app/build/outputs/apk/debug/*.apk output_apks/SoundStickerStudio-debug.apk || cp $(find app/build/outputs/apk/ -name "*.apk" | head -n 1) output_apks/SoundStickerStudio-debug.apk
+          cp "$APK_FILE" output_apks/SoundStickerStudio-debug.apk
           ls -la output_apks/
 
       - name: Upload Debug APK Artifact
