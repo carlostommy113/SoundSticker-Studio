@@ -14,8 +14,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -105,7 +103,7 @@ fun MainStudioScreen(
                             contentDescription = "Foto + Audio"
                         )
                     },
-                    label = { Text("Foto + Audio", fontSize = 11.sp) },
+                    label = { Text("Foto + Audio", fontSize = 10.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppDarkBg,
                         selectedTextColor = EmeraldGreen,
@@ -124,7 +122,7 @@ fun MainStudioScreen(
                             contentDescription = "Video a Sticker"
                         )
                     },
-                    label = { Text("Video a Sticker", fontSize = 11.sp) },
+                    label = { Text("Video", fontSize = 10.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppDarkBg,
                         selectedTextColor = EmeraldGreen,
@@ -143,7 +141,26 @@ fun MainStudioScreen(
                             contentDescription = "Mis Packs"
                         )
                     },
-                    label = { Text("Mis Packs", fontSize = 11.sp) },
+                    label = { Text("Mis Packs", fontSize = 10.sp) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = WhatsAppDarkBg,
+                        selectedTextColor = EmeraldGreen,
+                        indicatorColor = EmeraldGreen,
+                        unselectedIconColor = WhatsAppTextSecondary,
+                        unselectedTextColor = WhatsAppTextSecondary
+                    )
+                )
+
+                NavigationBarItem(
+                    selected = state.currentMode == CreationMode.WA_WEB,
+                    onClick = { viewModel.setMode(CreationMode.WA_WEB) },
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_globe),
+                            contentDescription = "Enviar con Sonido"
+                        )
+                    },
+                    label = { Text("Enviar Sonido", fontSize = 10.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = WhatsAppDarkBg,
                         selectedTextColor = EmeraldGreen,
@@ -181,9 +198,12 @@ fun MainStudioScreen(
                         viewModel = viewModel
                     )
                 }
+                CreationMode.WA_WEB -> {
+                    WhatsAppWebScreen()
+                }
             }
 
-            // WhatsApp Export Step-by-Step Dialog
+            // WhatsApp Export Dialog
             WhatsAppExportDialog(
                 isOpen = state.showExportDialog,
                 onDismiss = { viewModel.dismissExportDialog() },
