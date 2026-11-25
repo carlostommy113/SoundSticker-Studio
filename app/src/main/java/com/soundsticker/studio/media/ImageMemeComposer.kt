@@ -6,9 +6,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Build
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -18,8 +18,8 @@ object ImageMemeComposer {
 
     private const val STICKER_SIZE = 512
     private const val TRAY_SIZE = 96
-    private const val MAX_STICKER_BYTES = 100 * 1024 // 100 KB max for WhatsApp static stickers
-    private const val MAX_TRAY_BYTES = 50 * 1024    // 50 KB max for WhatsApp tray icon
+    private const val MAX_STICKER_BYTES = 100 * 1024 // 100 KB max WhatsApp
+    private const val MAX_TRAY_BYTES = 50 * 1024    // 50 KB max WhatsApp tray
 
     fun processImageWithMemeText(
         context: Context,
@@ -35,38 +35,30 @@ object ImageMemeComposer {
             inputStream.close()
             if (originalBitmap == null) return false
 
-            // 1. Crop to square 1:1 and scale to 512x512
+            // 1. Recorte a cuadrado 1:1 y redimensionar a 512x512
             val squareBitmap = cropToSquare(originalBitmap)
             val scaledBitmap = Bitmap.createScaledBitmap(squareBitmap, STICKER_SIZE, STICKER_SIZE, true)
-            if (squareBitmap != originalBitmap) {
-                squareBitmap.recycle()
-            }
-            if (originalBitmap != scaledBitmap) {
-                originalBitmap.recycle()
-            }
+            if (squareBitmap != originalBitmap) squareBitmap.recycle()
+            if (originalBitmap != scaledBitmap) originalBitmap.recycle()
 
-            // 2. Overlay Meme text if present
+            // 2. Aplicar texto Meme si existe
             val finalBitmap = if (!topText.isNullOrBlank() || !bottomText.isNullOrBlank()) {
                 drawMemeText(scaledBitmap, topText, bottomText)
             } else {
                 scaledBitmap
             }
 
-            // 3. Compress to WebP under 100 KB
+            // 3. Comprimir a WebP menor a 100 KB
             compressUnderLimit(finalBitmap, destStickerFile, MAX_STICKER_BYTES)
 
-            // 4. Create tray icon (96x96 WebP) if requested
+            // 4. Crear Tray Icon (96x96 WebP menor a 50 KB)
             if (destTrayFile != null) {
                 val trayBitmap = Bitmap.createScaledBitmap(finalBitmap, TRAY_SIZE, TRAY_SIZE, true)
                 compressUnderLimit(trayBitmap, destTrayFile, MAX_TRAY_BYTES)
-                if (trayBitmap != finalBitmap) {
-                    trayBitmap.recycle()
-                }
+                if (trayBitmap != finalBitmap) trayBitmap.recycle()
             }
 
-            if (finalBitmap != scaledBitmap) {
-                scaledBitmap.recycle()
-            }
+            if (finalBitmap != scaledBitmap) scaledBitmap.recycle()
             finalBitmap.recycle()
             true
         } catch (e: Exception) {
@@ -91,7 +83,6 @@ object ImageMemeComposer {
         val textSize = STICKER_SIZE * 0.085f
         val strokeWidth = textSize * 0.16f
 
-        // Text stroke paint (Black outline)
         val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.BLACK
             this.textSize = textSize
@@ -103,7 +94,6 @@ object ImageMemeComposer {
             strokeCap = Paint.Cap.ROUND
         }
 
-        // Text fill paint (White fill)
         val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             this.textSize = textSize
@@ -114,7 +104,6 @@ object ImageMemeComposer {
 
         val centerX = STICKER_SIZE / 2f
 
-        // Draw top text
         if (!topText.isNullOrBlank()) {
             val lines = topText.uppercase().split("\n")
             var y = textSize + 24f
@@ -125,7 +114,6 @@ object ImageMemeComposer {
             }
         }
 
-        // Draw bottom text
         if (!bottomText.isNullOrBlank()) {
             val lines = bottomText.uppercase().split("\n")
             var y = STICKER_SIZE - 32f - ((lines.size - 1) * (textSize + 8f))
@@ -142,9 +130,16 @@ object ImageMemeComposer {
     private fun compressUnderLimit(bitmap: Bitmap, destFile: File, maxBytes: Int) {
         var quality = 90
         var compressed: ByteArray
+        val format = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
+
         do {
             val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.WEBP, quality, stream)
+            bitmap.compress(format, quality, stream)
             compressed = stream.toByteArray()
             quality -= 10
         } while (compressed.size > maxBytes && quality >= 20)
