@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SoundSticker Studio</string>
+    <string name="provider_authority">com.soundsticker.studio.stickercontentprovider</string>
+</resources>

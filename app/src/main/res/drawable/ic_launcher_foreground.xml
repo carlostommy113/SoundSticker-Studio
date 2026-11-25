@@ -1,0 +1,28 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Emerald green sticker badge with sound waves -->
+    <path
+        android:fillColor="#25D366"
+        android:pathData="M34,26 C30,26 26,30 26,34 L26,74 C26,78 30,82 34,82 L74,82 C78,82 82,78 82,74 L82,34 C82,30 78,26 74,26 Z" />
+    <!-- Sticker peel corner -->
+    <path
+        android:fillColor="#128C7E"
+        android:pathData="M70,26 L82,38 L70,38 Z" />
+    <!-- Speaker / Sound icon in center -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,46 L48,46 L56,40 L56,68 L48,62 L42,62 Z" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M61,46 C64,49 64,59 61,62" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M66,41 C71,46 71,62 66,67" />
+</vector>

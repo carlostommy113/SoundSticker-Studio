@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="whatsapp_emerald">#25D366</color>
+    <color name="whatsapp_dark_bg">#121B22</color>
+    <color name="whatsapp_surface">#1F2C34</color>
+    <color name="whatsapp_surface_variant">#2A3942</color>
+    <color name="whatsapp_teal">#128C7E</color>
+</resources>
