@@ -348,37 +348,28 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 val destTrayFile = File(packDir, "tray.webp")
                 val destAudioFile = File(packDir, audioFileName)
 
-                val frameBitmap = VideoProcessorHelper.extractVideoFrameAt(
+                val frameOk = VideoProcessorHelper.extractFrameAtTime(
                     context = getApplication(),
                     videoUri = videoUri,
-                    timeUs = state.videoStartMs * 1000L
+                    timeMs = state.videoStartMs,
+                    destStickerFile = destStickerFile
                 )
 
-                if (frameBitmap != null) {
-                    val tempImgFile = File(getApplication<Application>().cacheDir, "temp_v_frame.png")
-                    FileOutputStream(tempImgFile).use { out ->
-                        frameBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                if (frameOk) {
+                    if (!destTrayFile.exists()) {
+                        destStickerFile.copyTo(destTrayFile, overwrite = true)
                     }
-
-                    ImageMemeComposer.processImageWithMemeText(
-                        context = getApplication(),
-                        imageUri = Uri.fromFile(tempImgFile),
-                        topText = null,
-                        bottomText = null,
-                        destStickerFile = destStickerFile,
-                        destTrayFile = destTrayFile
-                    )
 
                     var finalAudioName: String? = null
                     if (state.keepVideoAudio) {
-                        val extracted = VideoProcessorHelper.extractAudioFromVideo(
+                        val trimmed = AudioTrimmerHelper.trimAudio(
                             context = getApplication(),
-                            videoUri = videoUri,
-                            destAudioFile = destAudioFile,
+                            inputUri = videoUri,
+                            destFile = destAudioFile,
                             startMs = state.videoStartMs,
                             endMs = state.videoEndMs
                         )
-                        if (extracted && destAudioFile.exists() && destAudioFile.length() > 0) {
+                        if (trimmed && destAudioFile.exists() && destAudioFile.length() > 0) {
                             finalAudioName = audioFileName
                         }
                     }
