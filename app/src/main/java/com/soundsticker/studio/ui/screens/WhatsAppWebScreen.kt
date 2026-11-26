@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
@@ -33,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,7 +52,6 @@ fun WhatsAppWebScreen(
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var filePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
 
-    // Selector de archivos nativo de Android para imágenes, audios y videos de la web
     val fileChooserLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -101,7 +100,7 @@ fun WhatsAppWebScreen(
             )
         }
 
-        // WhatsApp Web adaptado a la pantalla del móvil
+        // WhatsApp Web ajustado y veloz
         Box(modifier = Modifier.weight(1f)) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
@@ -111,6 +110,9 @@ fun WhatsAppWebScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
+
+                        // Aceleración por hardware para fluidez máxima
+                        setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
                         settings.apply {
                             javaScriptEnabled = true
@@ -122,27 +124,23 @@ fun WhatsAppWebScreen(
                             builtInZoomControls = true
                             displayZoomControls = false
                             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            cacheMode = WebSettings.LOAD_DEFAULT
+                            
+                            // Reutiliza caché local para cargar en pocos segundos
+                            cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
 
-                            // Escala ajustada para pantalla de teléfono
-                            textZoom = 80
-
-                            // User-Agent Desktop moderno
-                            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                            // User-Agent compacto para que la interfaz sea reducida
+                            userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                         }
 
-                        // Zoom ajustado al 60% para que toda la pantalla de WhatsApp Web quepa en el celular
-                        setInitialScale(60)
+                        // Escala ajustada para compactar WhatsApp Web al ancho de la pantalla del celular
+                        setInitialScale(42)
 
                         CookieManager.getInstance().setAcceptCookie(true)
                         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 
                         webChromeClient = object : WebChromeClient() {
-                            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                                return true
-                            }
+                            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean = true
 
-                            // Permite que los botones de "Elegir archivo/imagen/audio/video" abran la galería de Android
                             override fun onShowFileChooser(
                                 webView: WebView?,
                                 filePathCallbackIn: ValueCallback<Array<Uri>>?,
@@ -173,7 +171,6 @@ fun WhatsAppWebScreen(
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 isLoading = false
                                 injectSoundStickerScripts(view)
-                                // Inyectar CSS responsivo para que el creador de stickers se adapte al ancho del móvil
                                 injectMobileResponsiveCss(view)
                             }
                         }
@@ -232,18 +229,24 @@ private fun injectMobileResponsiveCss(view: WebView?) {
     val mobileCss = """
         (function() {
             var css = `
+                /* Ajustar panel de stickers a toda la pantalla del celular */
+                #waas-root .overlay {
+                    padding: 0px !important;
+                }
                 #waas-root .panel {
-                    width: 95vw !important;
-                    max-height: 85vh !important;
-                    padding: 12px !important;
+                    width: 98vw !important;
+                    max-width: 98vw !important;
+                    max-height: 90vh !important;
+                    padding: 10px !important;
                     font-size: 13px !important;
+                    border-radius: 10px !important;
                 }
                 #waas-root input[type=text] {
-                    width: 140px !important;
+                    width: 130px !important;
                 }
                 #waas-root .tabs button {
-                    padding: 6px 8px !important;
-                    font-size: 12px !important;
+                    padding: 6px 6px !important;
+                    font-size: 11px !important;
                 }
             `;
             var style = document.createElement('style');
