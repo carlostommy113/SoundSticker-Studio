@@ -17,18 +17,26 @@ import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,6 +49,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.soundsticker.studio.ui.theme.EmeraldGreen
 import com.soundsticker.studio.ui.theme.WhatsAppDarkBg
 import com.soundsticker.studio.ui.theme.WhatsAppSurface
+import com.soundsticker.studio.ui.theme.WhatsAppTextPrimary
 import com.soundsticker.studio.ui.theme.WhatsAppTextSecondary
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -51,6 +60,7 @@ fun WhatsAppWebScreen(
     var isLoading by remember { mutableStateOf(true) }
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var filePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
+    var currentZoom by remember { mutableFloatStateOf(0.55f) } // 55% de tamaño: se ve chiquito y completo
 
     val fileChooserLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -65,30 +75,72 @@ fun WhatsAppWebScreen(
         filePathCallback = null
     }
 
+    fun applyZoom(newZoom: Float) {
+        currentZoom = newZoom.coerceIn(0.35f, 1.0f)
+        webViewInstance?.evaluateJavascript(
+            "document.body.style.zoom = '$currentZoom';",
+            null
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(WhatsAppDarkBg)
     ) {
-        // Banner de ayuda
-        Box(
+        // Barra superior con controles de zoom manual
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(WhatsAppSurface)
-                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Vinculación rápida: Toca 'Vincular con número de teléfono' abajo del QR",
+                    text = "WhatsApp Web Compacto",
                     color = EmeraldGreen,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Ingresa tu número y confirma el código en la notificación de WhatsApp.",
+                    text = "Toca 'Vincular con número' abajo del QR",
                     color = WhatsAppTextSecondary,
                     fontSize = 10.sp
                 )
+            }
+
+            // Botones para achicar aún más o agrandar
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FilledTonalButton(
+                    onClick = { applyZoom(currentZoom - 0.08f) },
+                    modifier = Modifier.size(34.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                ) {
+                    Text("−", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Text(
+                    text = "${(currentZoom * 100).toInt()}%",
+                    color = WhatsAppTextPrimary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                FilledTonalButton(
+                    onClick = { applyZoom(currentZoom + 0.08f) },
+                    modifier = Modifier.size(34.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                ) {
+                    Text("+", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
@@ -100,7 +152,7 @@ fun WhatsAppWebScreen(
             )
         }
 
-        // WhatsApp Web ajustado y veloz
+        // WhatsApp Web con tamaño compacto
         Box(modifier = Modifier.weight(1f)) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
@@ -111,7 +163,6 @@ fun WhatsAppWebScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
 
-                        // Aceleración por hardware para fluidez máxima
                         setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
                         settings.apply {
@@ -124,16 +175,11 @@ fun WhatsAppWebScreen(
                             builtInZoomControls = true
                             displayZoomControls = false
                             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            
-                            // Reutiliza caché local para cargar en pocos segundos
-                            cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                            cacheMode = WebSettings.LOAD_DEFAULT
 
-                            // User-Agent compacto para que la interfaz sea reducida
-                            userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                            // User-Agent Desktop
+                            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                         }
-
-                        // Escala ajustada para compactar WhatsApp Web al ancho de la pantalla del celular
-                        setInitialScale(42)
 
                         CookieManager.getInstance().setAcceptCookie(true)
                         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
@@ -170,6 +216,8 @@ fun WhatsAppWebScreen(
 
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 isLoading = false
+                                // Forzar tamaño chiquito (55%) al terminar de cargar
+                                view?.evaluateJavascript("document.body.style.zoom = '$currentZoom';", null)
                                 injectSoundStickerScripts(view)
                                 injectMobileResponsiveCss(view)
                             }
@@ -229,24 +277,24 @@ private fun injectMobileResponsiveCss(view: WebView?) {
     val mobileCss = """
         (function() {
             var css = `
-                /* Ajustar panel de stickers a toda la pantalla del celular */
+                /* Panel de stickers proporcional y compacto para el celular */
                 #waas-root .overlay {
                     padding: 0px !important;
                 }
                 #waas-root .panel {
-                    width: 98vw !important;
-                    max-width: 98vw !important;
-                    max-height: 90vh !important;
+                    width: 95vw !important;
+                    max-width: 95vw !important;
+                    max-height: 85vh !important;
                     padding: 10px !important;
                     font-size: 13px !important;
-                    border-radius: 10px !important;
+                    border-radius: 12px !important;
                 }
                 #waas-root input[type=text] {
-                    width: 130px !important;
+                    width: 140px !important;
                 }
                 #waas-root .tabs button {
-                    padding: 6px 6px !important;
-                    font-size: 11px !important;
+                    padding: 6px 8px !important;
+                    font-size: 12px !important;
                 }
             `;
             var style = document.createElement('style');
